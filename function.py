@@ -1,3 +1,4 @@
+from json import tool
 import tweepy
 from decouple import config
 from random_word import RandomWords
@@ -9,6 +10,8 @@ import re
 import time
 import sentences
 import os
+import nltk
+import nltk.sentiment
 
 
 # API token ( Elevated access required)
@@ -37,7 +40,7 @@ def CreateTweet(text):
 def getTextinTrend(trend_name):
     tweettext = []
     tweets = tweepy.Cursor(api.search_tweets, q=trend_name, lang="en").items(100)
-
+    
     for tweet in tweets:
         result = re.sub(r"http\S+", "", tweet.text)
         tweettext.append(result)
@@ -47,9 +50,32 @@ def getTextinTrend(trend_name):
 
 
 def getSentimentFromHashtags(hashtag):
+    #Cleaning hashtag
     text = getTextinTrend(hashtag)
-    blob = TextBlob(text)
-    sentiment = blob.sentiment.polarity  # value between -1 and 1
+    text = text.lower()
+    tokenized_text = nltk.word_tokenize(text)
+    new_string = ' '.join(filter(str.isalnum,tokenized_text))
+    stopwords = nltk.corpus.stopwords.words("english") 
+    stopwords.append("rt")
+    stopwords.append("follow")
+    #print(stopwords)
+    tokenized_text = nltk.word_tokenize(new_string)
+    
+    #print(tokenized_text)
+    words = [token for token in tokenized_text if token not in stopwords]
+    
+    for i in words:
+        ' '.join(i)
+    #print(words)
+    sia = nltk.sentiment.SentimentIntensityAnalyzer()
+    sentiment = sia.polarity_scores(words)
+    #print(new_string)
+    print(sentiment)
+    sentiment = sentiment["compound"]
+    #print(t_wordsToAnalyse)
+    testaled = nltk.FreqDist(words)
+    print(testaled.most_common(5))
+    
     print(hashtag + ": " + str(sentiment))
     return sentiment
 
@@ -59,31 +85,31 @@ def interpretPolarity(polarity):
     if polarity == 0:
         print("Rien à signaler sur le hashtag")
         sentiment = sentences.null[random.randint(0, len(sentences.null) - 1)]
-    elif polarity >= 0.5:
+    elif polarity >= 0.7:
         print("peace")
         sentiment = sentences.peace[random.randint(0, len(sentences.null) - 1)]
-    elif polarity <= 0.5 and polarity > 0.4:
+    elif polarity <= 0.7 and polarity > 0.3:
         print("happy conversations")
         sentiment = sentences.happy[random.randint(0, len(sentences.null) - 1)]
-    elif polarity <= 0.4 and polarity > 0.3:
+    elif polarity <= 0.3 and polarity > -0.3:
         print("normal conversation")
         sentiment = sentences.normal[random.randint(0, len(sentences.null) - 1)]
-    elif polarity <= 0.3 and polarity > 0.2:
+    elif polarity <= -0.3 and polarity > -0.4:
         print("became tilted")
         sentiment = sentences.became_tilted[random.randint(0, len(sentences.null) - 1)]
-    elif polarity <= 0.2 and polarity > 0.1:
+    elif polarity <= -0.4 and polarity > -0.5:
         print("tilted")
         sentiment = sentences.tilted[random.randint(0, len(sentences.null) - 1)]
-    elif polarity <= 0.1 and polarity > 0:
+    elif polarity <= -0.5 and polarity > -0.6:
         print("dangerous")
         sentiment = sentences.dangerous[random.randint(0, len(sentences.null) - 1)]
-    elif polarity <= 0 and polarity > -0.1:
+    elif polarity <= -0.6 and polarity > -0.7:
         print("hardcore")
         sentiment = sentences.hard[random.randint(0, len(sentences.null) - 1)]
-    elif polarity <= -0.1 and polarity > -0.4:
+    elif polarity <= -0.7 and polarity > -0.8:
         print("cursed topic")
         sentiment = sentences.cursed[random.randint(0, len(sentences.null) - 1)]
-    elif polarity <= -0.4:
+    elif polarity <= -0.9:
         print("anarchy")
         sentiment = sentences.anarchy[random.randint(0, len(sentences.null) - 1)]
     return sentiment
@@ -154,3 +180,5 @@ def reply():
             print("no mentions")
             time.sleep(25)
     json_save.close()
+
+interpretPolarity(getSentimentFromHashtags("#apple"))
